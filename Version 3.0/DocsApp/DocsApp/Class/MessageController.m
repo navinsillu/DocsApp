@@ -122,7 +122,12 @@
     NSArray *fetchresult = [appdelegate.managedObjectContext executeFetchRequest:fetchRequest error:&error];
     for (Chatlist *chat in fetchresult) {
         
-        [self.tableArray addObject:[NSKeyedUnarchiver unarchiveObjectWithData:chat.messageData]];
+        Message *msg = [NSKeyedUnarchiver unarchiveObjectWithData:chat.messageData];
+        [self.tableArray addObject:msg];
+        if(msg.status == MessageStatusSending)
+        {
+            [self performSelectorInBackground:@selector(callservice:) withObject:msg];
+        }
     }
     [self.tableView reloadData];
 }
@@ -247,7 +252,7 @@
     
     //Send message to server
     [self.gateway sendMessage:message];
-    [self callservice:message.text];
+    [self callservice:message];
 }
 -(void)inputbarDidPressLeftButton:(Inputbar *)inputbar
 {
@@ -275,10 +280,10 @@
 
 #pragma mark - Webservice
 
--(void)callservice:(NSString*)message
+-(void)callservice:(Message*)message
 {
     
-    NSString *escapedString = [message stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLHostAllowedCharacterSet]];
+    NSString *escapedString = [message.text stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLHostAllowedCharacterSet]];
     NSLog(@"escapedString: %@", escapedString);
 
     NSString *urlString = [NSString stringWithFormat:@"http://www.personalityforge.com/api/chat/?apiKey=6nt5d1nJHkqbkphe&chatBotID=63906&externalID=Navin&message=%@",escapedString];
@@ -313,8 +318,10 @@
                         
                         if(msgDict)
                         {
-                            Message *sentMessage = [self.tableArray lastObject];
-                            sentMessage.status = MessageStatusSent;
+                            
+                            [self.tableArray removeObject:message];
+                            message.status = MessageStatusSent;
+                            [self.tableArray addObject:message];
                             
                             Message *message = [[Message alloc] init];
                             message.sender = MessageSenderSomeone;
