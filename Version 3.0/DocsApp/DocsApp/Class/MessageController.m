@@ -218,7 +218,7 @@
     message.text = inputbar.text;
     message.date = [NSDate date];
     message.chat_id = _chat.identifier;
-    message.status = MessageStatusReceived;
+    message.status = MessageStatusSending;
     
     Chatlist *chat = [NSEntityDescription
                                       insertNewObjectForEntityForName:@"Chatlist"
@@ -294,14 +294,12 @@
 
     NSError *error = nil;
     
-    
     if (!error) {
         
         NSURLSessionDataTask *downloadTask = [session dataTaskWithRequest:request completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
             if (!error) {
                 NSHTTPURLResponse *httpResp = (NSHTTPURLResponse*) response;
                 if (httpResp.statusCode == 200) {
-                    
                     
                     NSDictionary* json = [NSJSONSerialization
                                           JSONObjectWithData:data
@@ -315,6 +313,9 @@
                         
                         if(msgDict)
                         {
+                            Message *sentMessage = [self.tableArray lastObject];
+                            sentMessage.status = MessageStatusSent;
+                            
                             Message *message = [[Message alloc] init];
                             message.sender = MessageSenderSomeone;
                             message.status = MessageStatusReceived;
